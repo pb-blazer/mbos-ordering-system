@@ -50,6 +50,25 @@ app.use(cors({
 app.use(express.json({ limit: '100kb' }));
 
 /*
+ * Netlify serverless-http compatibility:
+ * Netlify may supply the request body as a Buffer. Express's JSON parser
+ * skips an already-populated req.body, so convert that Buffer here.
+ */
+app.use((req, res, next) => {
+    if (Buffer.isBuffer(req.body)) {
+        try {
+            req.body = JSON.parse(req.body.toString('utf8'));
+        } catch (error) {
+            return res.status(400).json({
+                error: 'Request body must contain valid JSON',
+            });
+        }
+    }
+    next();
+});
+
+
+/*
  * TEMPORARY Netlify order-request diagnostic.
  * Deliberately excludes customer PII and all delivery-location values.
  */
@@ -194,7 +213,21 @@ const configuredOrderLimit = Number(
     process.env.ORDER_CREATION_RATE_LIMIT
 );
 
+
+function getRateLimitClientKey(req) {
+    const forwardedFor = req.headers['x-forwarded-for'];
+    const candidate =
+        req.headers['x-nf-client-connection-ip'] ||
+        (typeof forwardedFor === 'string'
+            ? forwardedFor.split(',')[0].trim()
+            : null) ||
+        req.socket?.remoteAddress;
+
+    return candidate || 'netlify-unknown-client';
+}
+
 const orderCreationLimiter = rateLimit({
+    keyGenerator: getRateLimitClientKey,
     windowMs: 15 * 60 * 1000,
     max:
         Number.isSafeInteger(configuredOrderLimit) &&
@@ -211,6 +244,7 @@ const orderCreationLimiter = rateLimit({
 });
 
 const customerOrderStatusLimiter = rateLimit({
+    keyGenerator: getRateLimitClientKey,
     windowMs: 5 * 60 * 1000,
     max: 120,
     standardHeaders: true,
