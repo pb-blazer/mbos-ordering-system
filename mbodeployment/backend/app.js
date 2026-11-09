@@ -49,6 +49,71 @@ app.use(cors({
 
 app.use(express.json({ limit: '100kb' }));
 
+/*
+ * TEMPORARY Netlify order-request diagnostic.
+ * Deliberately excludes customer PII and all delivery-location values.
+ */
+app.use((req, res, next) => {
+    if (req.method === 'POST' && req.path === '/api/orders') {
+        const body = req.body;
+        const customer =
+            body && typeof body === 'object' ? body.customer : undefined;
+        const items =
+            body && typeof body === 'object' && Array.isArray(body.items)
+                ? body.items
+                : null;
+
+        console.log('[ORDER REQUEST DIAGNOSTIC]', {
+            method: req.method,
+            path: req.path,
+            contentType: req.headers['content-type'] || null,
+            contentLength: req.headers['content-length'] || null,
+            bodyType: Array.isArray(body) ? 'array' : typeof body,
+            bodyKeys:
+                body && typeof body === 'object' ? Object.keys(body) : [],
+            customerType: Array.isArray(customer)
+                ? 'array'
+                : typeof customer,
+            customerKeys:
+                customer && typeof customer === 'object'
+                    ? Object.keys(customer)
+                    : [],
+            customerNamePresent:
+                !!customer && typeof customer.name === 'string',
+            customerNameLength:
+                customer && typeof customer.name === 'string'
+                    ? customer.name.length
+                    : null,
+            customerPhonePresent:
+                !!customer && typeof customer.phone === 'string',
+            customerPhoneLength:
+                customer && typeof customer.phone === 'string'
+                    ? customer.phone.length
+                    : null,
+            orderType: body?.order_type ?? null,
+            paymentMethod: body?.payment_method ?? null,
+            notesLength:
+                typeof body?.notes === 'string' ? body.notes.length : null,
+            itemsIsArray: Array.isArray(body?.items),
+            itemCount: items ? items.length : null,
+            items: items
+                ? items.map((item) => ({
+                    menu_item_id: item?.menu_item_id ?? null,
+                    quantity: item?.quantity ?? null,
+                    expected_price: item?.expected_price ?? null,
+                }))
+                : null,
+            latitudePresent:
+                body?.latitude !== undefined && body?.latitude !== null,
+            longitudePresent:
+                body?.longitude !== undefined && body?.longitude !== null,
+        });
+    }
+
+    next();
+});
+
+
 // ==========================================================
 // SUPABASE CLIENT
 // ==========================================================
