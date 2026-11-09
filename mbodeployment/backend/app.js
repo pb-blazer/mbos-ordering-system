@@ -56,6 +56,12 @@ app.use(express.json({ limit: '100kb' }));
  */
 app.use((req, res, next) => {
     if (Buffer.isBuffer(req.body)) {
+        // GET and other body-less requests may arrive as an empty Buffer.
+        if (req.body.length === 0) {
+            req.body = {};
+            return next();
+        }
+
         try {
             req.body = JSON.parse(req.body.toString('utf8'));
         } catch (error) {
@@ -64,6 +70,7 @@ app.use((req, res, next) => {
             });
         }
     }
+
     next();
 });
 
