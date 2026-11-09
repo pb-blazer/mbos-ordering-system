@@ -1,7 +1,10 @@
 
 [build]
-  command = "npm --prefix backend install --no-audit --no-fund && npm --prefix frontend install && npm --prefix frontend run build"
+  command = "npm --prefix backend install --no-audit --no-fund && npm --prefix frontend install --include=dev && npm --prefix frontend run build"
   publish = "frontend/dist"
+
+[build.environment]
+  NODE_VERSION = "22"
 
 [functions]
   directory = "backend/netlify/functions"
