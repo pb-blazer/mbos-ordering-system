@@ -1,5 +1,6 @@
+
 [build]
-  command = "npm --prefix backend install --no-audit --no-fund && npm --prefix frontend ci && npm --prefix frontend run build"
+  command = "npm --prefix backend install --no-audit --no-fund && npm --prefix frontend install && npm --prefix frontend run build"
   publish = "frontend/dist"
 
 [functions]
