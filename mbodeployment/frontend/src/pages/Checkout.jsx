@@ -14,6 +14,7 @@ import {
 import {
     createOrder,
     clearPendingOrderRequest,
+    clearPendingOrderAttemptAfterManualVerification,
 } from '../services/OrderService';
 
 // ======================================================
@@ -425,6 +426,30 @@ function Checkout() {
         // PRICE_CHANGED is handled by Menu.jsx when the customer
         // returns. ITEM_UNAVAILABLE allows remaining items to reconcile.
         window.location.assign('/menu');
+    };
+
+    // ======================================================
+    // RECOVER AFTER RESTAURANT VERIFICATION
+    // ======================================================
+
+    const handleRecoverPendingOrder = () => {
+        if (placingOrder) {
+            return;
+        }
+
+        const confirmed = window.confirm(
+            'Only continue if you have checked with Mbo’s Tshisanyama and staff have confirmed that the previous order was NOT received. If an order was received, do not continue. Have you received that confirmation?'
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        clearPendingOrderAttemptAfterManualVerification();
+
+        setOrderOutcomeUnknown(false);
+        setOrderErrorCode(null);
+        setOrderError('');
     };
 
     // ======================================================
@@ -1241,13 +1266,26 @@ function Checkout() {
                                     >
                                         RETURN TO MENU
                                     </button>
+                                ) : orderRetryBlocked ? (
+                                    <>
+                                        <small>
+                                            Do not continue until Mbo’s Tshisanyama has checked whether the previous attempt was received. If an order exists, use its tracking details instead of placing another one.
+                                        </small>
+
+                                        <button
+                                            type="button"
+                                            className="checkout-success-button"
+                                            onClick={handleRecoverPendingOrder}
+                                            disabled={placingOrder}
+                                        >
+                                            I CONFIRMED NO ORDER EXISTS — CONTINUE
+                                        </button>
+                                    </>
                                 ) : (
                                     <small>
-                                        {orderRetryBlocked
-                                            ? 'Do not submit a different order yet. Check your existing order or contact Mbo’s Tshisanyama to verify the previous attempt.'
-                                            : orderOutcomeUnknown
-                                                ? 'Keep the checkout unchanged while retrying. The same request identifier will be reused. If the problem continues, contact the restaurant before making another order.'
-                                                : 'Check your details and connection, then try again.'}
+                                        {orderOutcomeUnknown
+                                            ? 'Keep the checkout unchanged while retrying. The same request identifier will be reused. If the problem continues, contact the restaurant before making another order.'
+                                            : 'Check your details and connection, then try again.'}
                                     </small>
                                 )}
                             </div>
